@@ -1,10 +1,6 @@
-################################
-
-# Using this file to paste different iterations of the model, to produce samples for the paper
-
-###############################
-
-
+""" 
+2nd stage of the GAN model, with LSTM
+"""
 
 import torch.nn as nn
 from config.config_bases import ModelConfigBase
@@ -21,7 +17,7 @@ class GanConfig(ModelConfigBase):
         self.lr = 3e-4
         self.n_channels = 0  # auto determined depending on dataset
         self.z_dim = 256  # dim of latent noise of generator
-        self.batch_size = 32 # 32
+        self.batch_size = 32 
         self.num_epochs = 20 
         self.hidden_layers = 256
         
@@ -36,17 +32,9 @@ class Gan(nn.Module):
         
         
         self.disc = DiscriminatorLSTM(model_config.n_channels, model_config.batch_size, model_config.hidden_layers).to(device)
-        #self.disc = Discriminator(model_config.n_channels, model_config.batch_size).to(device)
-
         self.opt_disc = optim.Adam(self.disc.parameters(), lr=model_config.lr)
-        #self.opt_disc = optim.AdamW(self.gen.parameters(), lr=model_config.lr)
-
-
         self.gen = Generator(model_config.z_dim, model_config.n_channels, model_config.hidden_layers).to(device)
         self.opt_gen = optim.Adam(self.gen.parameters(), lr=model_config.lr)
-        #self.opt_gen = optim.RMSprop(self.gen.parameters(), lr=model_config.lr)
-        #self.opt_gen = optim.AdamW(self.gen.parameters(), lr=model_config.lr)
-        
         self.criterion = nn.BCELoss()
         
      
@@ -54,17 +42,10 @@ class Gan(nn.Module):
 
         
     def forward(self):
-        # noise = torch.randn(self.model_config.batch_size, self.model_config.sequence_length,  self.model_config.z_dim).to(
-        #     self.device
-        # )
-
-        # fake = self.gen(noise)
-
         noise = torch.randn(self.model_config.batch_size, self.model_config.z_dim).to(
             self.device
         )
         noise = repeat_vector(noise, self.model_config.sequence_length)
-
         fake = self.gen(noise)
         return fake
 
@@ -73,10 +54,6 @@ class Gan(nn.Module):
 
     def train_step(self, real):
         fake = self.forward()
-
-        #print(real.shape)
-        #print(fake.shape)
-
         disc_real = self.disc(real)  # .view(-1)
         lossD_real = self.criterion(disc_real, torch.ones_like(disc_real))
         disc_fake = self.disc(fake)  # .view(-1)
@@ -96,12 +73,7 @@ class Gan(nn.Module):
         self.opt_gen.step()
         self.tracker.add_to_train_loss(lossD, lossG)
 
-        #sample = fake.cpu().detach().numpy()
-        #print(f'real shape: {real.shape}')
-        #print(sample.shape)
-
     def synthesize_data(self):
-        #print(self.forward().cpu().detach().shape)
         return self.forward().cpu().detach()
 
     def fit(
@@ -134,21 +106,10 @@ class Generator(nn.Module):
         self.gen = nn.Sequential(
             nn.LSTM(z_dim, 256, 1, batch_first=True),
             GetLSTMOutput(),
-            #print_output("G_1", False),
-
             nn.LSTM(256, 256, 3,  batch_first=True),
-            GetLSTMOutput(),
-            #print_output("G_2", False),
-           
+            GetLSTMOutput(),   
             TimeDistributed(nn.Linear(in_features=256, out_features=data_dim),
-            #print_output("TimeD", False),
-            
-            # -----------MINIMAL----------
-             
-            # nn.Linear(z_dim, hidden_layers),
-            # nn.LeakyReLU(0.01),
-            # nn.Linear(hidden_layers, data_dim),
-            # nn.Tanh(), 
+ 
         )
         )
         
@@ -162,29 +123,11 @@ class Discriminator(nn.Module):
     def __init__(self, in_features, batch_size):
         super().__init__()
         self.disc = nn.Sequential(
-            # Reshape([in_features, 50*256]),
-            # nn.Linear(50*256, in_features),
-            # nn.LeakyReLU(0.01),
-
-            # Reshape([256, -1]),
-            # nn.Linear(in_features, 1),
-            # #print_output("reshpae", False),
-
-            # nn.Sigmoid(),
-
-            
-            #print_output("reshape", False),
-
+         
             Reshape([batch_size, 50*in_features]), #flatten each batch
             nn.Linear(50*in_features, 3),
-            #nn.Linear(50, 25),
             nn.Linear(3, 1),
             nn.Sigmoid(),
-
-            # nn.Linear(in_features, 128),
-            # nn.LeakyReLU(0.01),
-            # nn.Linear(128, 1),
-            # nn.Sigmoid(),
         )
         
 
@@ -198,21 +141,14 @@ class DiscriminatorLSTM(nn.Module):
         self.disc = nn.Sequential(
             nn.LSTM(data_dim, hidden_layers, batch_first=True),
             GetLSTMOutput(),
-            #print_output("LSTM1", False),
-           
+    
             nn.LSTM(hidden_layers, hidden_layers, 2, batch_first=True),
             GetLSTMOutput(),
-           # print_output("LSTM2", False),
-            
+
             nn.LSTM(hidden_layers, hidden_layers, 1, batch_first=True),
             GetLSTMOutput(),
-            
-           
 
             Discriminator(hidden_layers, batch_size),
-            #print_output("Disc", False),
-
-
         )
 
     def forward(self, x):
@@ -251,17 +187,16 @@ class GanLossTracker:
 
 
 
-# Just in case its needed for the Discriminator
+
+
+
+# Helper classes
 class Reshape(nn.Module):
     def __init__(self, shape):
         super(Reshape, self).__init__()
         self.shape = shape
         
-
     def forward(self, x):
-        #print(x.shape)
-        #print(x.view(self.shape).shape)
-        #return x.view(self.shape)
         return torch.reshape(x, shape=self.shape)
     
 
@@ -271,12 +206,7 @@ class RepeatVector(nn.Module):
         super(RepeatVector, self).__init__()
         self.n = n
 
-    def forward(self, x):
-        #print(x.repeat(1, 1, self.n).shape)
-        # t_a = torch.unsqueeze(x, 1)
-        # t_b = t_a.repeat(1, self.n, 1)
-        # return t_b
-    
+    def forward(self, x):   
         return x.repeat(1, self.n, 1)
         
 class print_output(nn.Module):
