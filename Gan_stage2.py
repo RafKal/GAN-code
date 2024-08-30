@@ -16,7 +16,7 @@ class GanConfig(ModelConfigBase):
     def __init__(self):
         self.lr = 3e-4
         self.n_channels = 0  # auto determined depending on dataset
-        self.z_dim = 256  # dim of latent noise of generator
+        self.z_dim = 256  
         self.batch_size = 32 
         self.num_epochs = 20 
         self.hidden_layers = 256
@@ -34,7 +34,7 @@ class Gan(nn.Module):
         self.disc = DiscriminatorLSTM(model_config.n_channels, model_config.batch_size, model_config.hidden_layers).to(device)
         self.opt_disc = optim.Adam(self.disc.parameters(), lr=model_config.lr)
         self.gen = Generator(model_config.z_dim, model_config.n_channels, model_config.hidden_layers).to(device)
-        self.opt_gen = optim.Adam(self.gen.parameters(), lr=model_config.lr)
+        self.opt_gen = optim.Adam(self.gen.parameters(), lr=model_config.lr/3) # learning rate divided by 3 for G
         self.criterion = nn.BCELoss()
         
      
@@ -90,14 +90,12 @@ class Gan(nn.Module):
 class GetLSTMOutput(nn.Module):
     def forward(self, x):
         out, _ = x
-        #print(f"out shape: {out.shape}")
         return out
 
 
 class getLastTimestep(nn.Module):
     def forward(self, x):
         out = x[:, -1, :]
-        #print(out)
         return out
 
 class Generator(nn.Module):
@@ -106,7 +104,7 @@ class Generator(nn.Module):
         self.gen = nn.Sequential(
             nn.LSTM(z_dim, 256, 1, batch_first=True),
             GetLSTMOutput(),
-            nn.LSTM(256, 256, 3,  batch_first=True),
+            nn.LSTM(256, 256, 1,  batch_first=True), # reduced to 1 additional layer from the 3 initial
             GetLSTMOutput(),   
             TimeDistributed(nn.Linear(in_features=256, out_features=data_dim),
  
