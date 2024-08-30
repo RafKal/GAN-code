@@ -1,4 +1,8 @@
 """ 
+Starting Code for the Project
+https://github.com/aladdinpersson/Machine-Learning-Collection/blob/master/ML/Pytorch/GANs/1.%20SimpleGAN/fc_gan.py
+
+
 Simple GAN using fully connected layers
 
 Programmed by Aladdin Persson <aladdin.persson at hotmail dot com>
