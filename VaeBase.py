@@ -1,3 +1,8 @@
+""" 
+VAE code that produced Figure 35
+"""
+
+
 import torch
 import torch.nn as nn
 
