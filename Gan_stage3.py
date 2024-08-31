@@ -1,3 +1,7 @@
+""" 
+2nd stage of the GAN model, with a 2G 4D model 
+"""
+
 import torch.nn as nn
 from config.config_bases import ModelConfigBase
 import torch.optim as optim
@@ -29,13 +33,10 @@ class Gan(nn.Module):
         
         self.disc = DiscriminatorLSTM(model_config.n_channels, model_config.batch_size, model_config.hidden_layers).to(device)
         self.opt_disc = optim.Adam(self.disc.parameters(), lr=model_config.lr)
-        #self.opt_disc = optim.AdamW(self.gen.parameters(), lr=model_config.lr)
 
 
         self.gen = Generator(model_config.z_dim, model_config.n_channels, model_config.hidden_layers).to(device)
         self.opt_gen = optim.Adam(self.gen.parameters(), lr=model_config.lr/3)
-        #self.opt_gen = optim.RMSprop(self.gen.parameters(), lr=model_config.lr)
-        #self.opt_gen = optim.AdamW(self.gen.parameters(), lr=model_config.lr)
         
         self.criterion = nn.BCELoss()
         
@@ -80,18 +81,7 @@ class Gan(nn.Module):
         lossG.backward()
         self.opt_gen.step()
         self.tracker.add_to_train_loss(lossD, lossG)
-
-        #sample = fake.cpu().detach().numpy()
-        #print(f'real shape: {real.shape}')
-        #print(sample.shape)
-
-        # #inclusion of gradiens
-        # for name, param in self.gen.named_parameters():
-        #         if param.requires_grad:
-        #             print(name, param.grad.norm())
-
     def synthesize_data(self):
-        #print(self.forward().cpu().detach().shape)
         return self.forward().cpu().detach()
 
     def fit(
@@ -115,41 +105,18 @@ class GetLSTMOutput(nn.Module):
 class getLastTimestep(nn.Module):
     def forward(self, x):
         out = x[:, -1, :]
-        #print(out)
         return out
 
 class Generator(nn.Module):
     def __init__(self, z_dim, data_dim, hidden_layers):
         super().__init__()
         self.gen = nn.Sequential(
-            # nn.LSTM(z_dim, 256, 1, batch_first=True),
-            # GetLSTMOutput(),
-            # #print_output("G_1", False),
-
-            # nn.LSTM(256, 256, 2,  batch_first=True),
-            # GetLSTMOutput(),
-            # #print_output("G_2", False),
-            
-            # nn.LSTM(256, 256,  batch_first=True),
-            # GetLSTMOutput(),
-            # #print_output("G_3", False),
-           
-            # TimeDistributed(nn.Linear(in_features=256, out_features=data_dim),
-            # #print_output("TimeD", False),
-            
-            # -----------MINIMAL----------
-             
             nn.LSTM(z_dim, hidden_layers, 1, batch_first=True),
-            GetLSTMOutput(),
-            #print_output("G_1", False),
-
-            
+            GetLSTMOutput(),       
             nn.LSTM(hidden_layers, hidden_layers,1, batch_first=True),
             GetLSTMOutput(),
-            #print_output("G_3", False),
            
             TimeDistributed(nn.Linear(in_features=hidden_layers, out_features=data_dim),
-            #print_output("TimeD", False),
         )
         )
         
@@ -162,37 +129,10 @@ class Discriminator(nn.Module):
     def __init__(self, in_features, batch_size):
         super().__init__()
         self.disc = nn.Sequential(
-            # Reshape([in_features, 50*256]),
-            # nn.Linear(50*256, in_features),
-            # nn.LeakyReLU(0.01),
-
-            # Reshape([256, -1]),
-            # nn.Linear(in_features, 1),
-            # #print_output("reshpae", False),
-
-            # nn.Sigmoid(),
-
-            
-            #print_output("reshape", False),
-
-            # nn.Linear(50*in_features, in_features),
-            # nn.LeakyReLU(0.01),
-            # nn.Linear(in_features, int(in_features/8)),
-            # nn.LeakyReLU(0.01),
-            # nn.Linear(int(in_features/8), 1),
-            # nn.LeakyReLU(0.01),
-            # nn.Sigmoid(),
-            #print_output("linear", False),
-
             Reshape([batch_size, 50*in_features]), #flatten each batch
             nn.Linear(50*in_features, 3),
-            #nn.Linear(50, 25),
             nn.Linear(3, 1),
-            nn.Sigmoid(),
-            #print_output("sigmoid", True),
-
-
-            
+            nn.Sigmoid(),       
         )
         
 
@@ -206,21 +146,11 @@ class DiscriminatorLSTM(nn.Module):
         self.disc = nn.Sequential(
             nn.LSTM(data_dim, hidden_layers, batch_first=True),
             GetLSTMOutput(),
-            #print_output("LSTM1", False),
            
             nn.LSTM(hidden_layers, hidden_layers, 3, batch_first=True),
             GetLSTMOutput(),
-            #print_output("LSTM2", False),
 
             Discriminator(hidden_layers, batch_size),
-            #print_output("Disc", False),
-
-
-    
-            
-            # TimeDistributed(nn.Linear(in_features=hidden_layers, out_features=data_dim)),
-            # Discriminator(data_dim, batch_size),
-            #print_output("Disc", False),
         )
 
     def forward(self, x):
