@@ -1,5 +1,5 @@
 """ 
-2nd stage of the GAN model, with a 2G 4D model 
+3rd stage of the GAN, with a 2G 4D Model
 """
 
 import torch.nn as nn
@@ -16,7 +16,7 @@ class GanConfig(ModelConfigBase):
     def __init__(self):
         self.lr = 3e-4
         self.n_channels = 0  # auto determined depending on dataset
-        self.z_dim = 256  # dim of latent noise of generator, from 256
+        self.z_dim = 256  
         self.batch_size = 128
         self.num_epochs = 20 
         self.hidden_layers = 256 
@@ -58,11 +58,6 @@ class Gan(nn.Module):
 
     def train_step(self, real):
         fake = self.forward()
-
-
-        #print(real.shape)
-        #print(fake.shape)
-
         disc_real = self.disc(real)  # .view(-1)
         lossD_real = self.criterion(disc_real, torch.ones_like(disc_real))
         disc_fake = self.disc(fake)  # .view(-1)
@@ -98,7 +93,6 @@ class Gan(nn.Module):
 class GetLSTMOutput(nn.Module):
     def forward(self, x):
         out, _ = x
-        #print(f"out shape: {out.shape}")
         return out
 
 
@@ -197,9 +191,6 @@ class Reshape(nn.Module):
         
 
     def forward(self, x):
-        #print(x.shape)
-        #print(x.view(self.shape).shape)
-        #return x.view(self.shape)
         return torch.reshape(x, shape=self.shape)
     
 
@@ -210,11 +201,6 @@ class RepeatVector(nn.Module):
         self.n = n
 
     def forward(self, x):
-        #print(x.repeat(1, 1, self.n).shape)
-        # t_a = torch.unsqueeze(x, 1)
-        # t_b = t_a.repeat(1, self.n, 1)
-        # return t_b
-    
         return x.repeat(1, self.n, 1)
         
 class print_output(nn.Module):
