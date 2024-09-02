@@ -1,5 +1,5 @@
 """ 
-2nd stage of the GAN model, with inserted LSTM layers
+2nd stage of the GAN, with LSTM layers
 """
 
 import torch.nn as nn
